@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nutrition Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js')
+            .then(() => console.log('Service Worker enregistré'))
+            .catch(err => console.error('Erreur SW:', err));
+    }
+</script>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h1><i class="fas fa-dumbbell"></i> Nutrition Tracker</h1>
+            <div class="welcome-message">Bienvenue ! Atteins tes objectifs avec style.</div>
+            <form id="profile-form">
+                <label for="age">Âge *:</label>
+                <input type="number" id="age" required>
+                <label for="gender">Genre *:</label>
+                <select id="gender" required>
+                    <option value="male">Homme</option>
+                    <option value="female">Femme</option>
+                </select>
+                <label for="weight">Poids (kg) *:</label>
+                <input type="number" step="0.1" id="weight" required>
+                <label for="height">Taille (cm) *:</label>
+                <input type="number" id="height" required>
+                <label for="goal">Objectif *:</label>
+                <select id="goal" required>
+                    <option value="cut">Sèche</option>
+                    <option value="maintain">Maintien</option>
+                    <option value="bulk">Prise de masse</option>
+                </select>
+                <label for="activity">Activité *:</label>
+                <div class="tooltip">
+                    <select id="activity" required>
+                        <option value="sedentary">Sédentaire</option>
+                        <option value="moderate">Modéré</option>
+                        <option value="active">Actif</option>
+                        <option value="very_active">Très actif</option>
+                    </select>
+                    <span class="tooltiptext">
+                        Sédentaire : Peu ou pas d'exercice.<br>
+                        Modéré : 3-5 séances légères/semaine.<br>
+                        Actif : 6-7 séances modérées/semaine.<br>
+                        Très actif : Entraînement intense quotidien.
+                    </span>
+                </div>
+                <button type="submit"><i class="fas fa-calculator"></i> Calculer</button>
+            </form>
+            <div id="calorie-explanation" class="explanation"></div>
+        </aside>
+        <main class="main-content">
+            <div class="dashboard">
+                <div class="dashboard-item">
+                    <i class="fas fa-fire"></i> Calories: <span id="calories-remaining">0/0</span> kcal
+                    <span id="calories-status" class="status-indicator"></span>
+                </div>
+                <div class="dashboard-item">
+                    <i class="fas fa-dumbbell"></i> Protéines: <span id="proteins-remaining">0/0</span> g
+                    <span id="proteins-status" class="status-indicator"></span>
+                </div>
+                <div class="dashboard-item">
+                    <i class="fas fa-bread-slice"></i> Glucides: <span id="carbs-remaining">0/0</span> g
+                    <span id="carbs-status" class="status-indicator"></span>
+                </div>
+                <div class="dashboard-item">
+                    <i class="fas fa-cheese"></i> Lipides: <span id="fats-remaining">0/0</span> g
+                    <span id="fats-status" class="status-indicator"></span>
+                </div>
+            </div>
+            <div class="progress-section">
+                <h2>Vos Progrès</h2>
+                <canvas id="progress-chart" width="400" height="200"></canvas>
+                <div id="progress-form">
+                    <h3>Ajouter une mesure</h3>
+                    <input type="date" id="progress-date" required>
+                    <input type="number" id="progress-weight" placeholder="Poids (kg)" step="0.1" required>
+                    <input type="number" id="progress-waist" placeholder="Tour de taille (cm)" step="0.1">
+                    <button onclick="addProgress()">Ajouter</button>
+                </div>
+            </div>
+            </section>
+            <section id="food-log">
+                <h2><i class="fas fa-utensils"></i> Ajouter un aliment</h2>
+                <input type="text" id="food-name" placeholder="Nom de l'aliment" list="food-suggestions">
+                <datalist id="food-suggestions"></datalist>
+                <input type="number" id="food-portion" placeholder="Portion (g)">
+                <input type="number" id="food-calories" placeholder="Calories (pour 100g)">
+                <input type="number" id="food-proteins" placeholder="Protéines (pour 100g)">
+                <input type="number" id="food-carbs" placeholder="Glucides (pour 100g)">
+                <input type="number" id="food-fats" placeholder="Lipides (pour 100g)">
+                <button onclick="addFood()"><i class="fas fa-plus"></i> Ajouter</button>
+                <button onclick="addToFavorites()"><i class="fas fa-star"></i> Favori</button>
+                <select id="favorites" onchange="loadFavorite()">
+                    <option value="">-- Choisir un favori --</option>
+                </select>
+                <table id="food-table">
+                    <thead>
+                        <tr>
+                            <th>Aliment</th>
+                            <th>Portion</th>
+                            <th>Calories</th>
+                            <th>Protéines</th>
+                            <th>Glucides</th>
+                            <th>Lipides</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+            <section id="water-log">
+                <h2><i class="fas fa-tint"></i> Hydratation</h2>
+                <p>Objectif: <span id="water-goal">0</span> L - <span id="water-info">Basé sur votre profil</span></p>
+                <button onclick="addWater(25)"><i class="fas fa-glass-whiskey"></i> Verre (25cl)</button>
+                <button onclick="addWater(75)"><i class="fas fa-bottle-water"></i> Gourde (75cl)</button>
+                <input type="number" id="custom-water" placeholder="cl">
+                <button onclick="addWater(document.getElementById('custom-water').value)"><i class="fas fa-plus"></i> Ajouter</button>
+                <div class="progress-bar">
+                    <div id="water-progress"></div>
+                </div>
+                <p>Eau bue: <span id="water-total">0</span> L - <span id="water-remaining">0</span> L restant</p>
+                <div id="water-reminder" class="reminder"></div>
+            </section>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
